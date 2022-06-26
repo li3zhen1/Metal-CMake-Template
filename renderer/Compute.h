@@ -10,6 +10,7 @@
 class Compute {
 private:
     MTL::Device *_pDevice;
+
     MTL::CommandQueue *_pCommandQueue;
     MTL::CommandBuffer *_pCommandBuffer;
     MTL::ComputeCommandEncoder *_pComputeCommandEncoder;
@@ -28,10 +29,10 @@ public:
 
     void buildShaders();
 
-    static void generateRandomData(MTL::Buffer *buffer, uint bufferSize);
+    static void generateRandomData(MTL::Buffer *buffer, unsigned long bufferSize);
 
-    void calculate(uint arrayLength);
+    void calculate(unsigned long arrayLength);
 
-    void verifyResult(uint arrayLength);
+    void verifyResult(unsigned long arrayLength);
 };
 

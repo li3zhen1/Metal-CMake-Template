@@ -50,17 +50,19 @@ kernel void add_arrays(device const float* inA,
 
 }
 
-void Compute::generateRandomData(MTL::Buffer *buffer, uint size) {
+void Compute::generateRandomData(MTL::Buffer *buffer, unsigned long size) {
     auto *dataPtr = static_cast<float *>(buffer->contents());
 
+    std::default_random_engine randomEngine;
+
     for (unsigned long index = 0; index < size; index++) {
-        dataPtr[index] = (float) (std::rand()) / (float) (RAND_MAX);
+        dataPtr[index] = (float) (randomEngine()) / (float) (RAND_MAX);
     }
 }
 
-void Compute::calculate(uint arrayLength) {
+void Compute::calculate(unsigned long arrayLength) {
 
-    uint bufferSize = arrayLength * sizeof(float);
+    unsigned long bufferSize = arrayLength * sizeof(float);
 
     _pBufferA = _pDevice->newBuffer(bufferSize, MTL::ResourceStorageModeShared);
     _pBufferB = _pDevice->newBuffer(bufferSize, MTL::ResourceStorageModeShared);
@@ -70,9 +72,7 @@ void Compute::calculate(uint arrayLength) {
     generateRandomData(_pBufferA, arrayLength);
     generateRandomData(_pBufferB, arrayLength);
 
-//    auto *dataPtrA = static_cast<float *>(_pBufferA->contents());
-//    auto *dataPtrB = static_cast<float *>(_pBufferB->contents());
-//    auto *dataPtrResult = static_cast<float *>(_pBufferResult->contents());
+
 //    for (u_long index = 0; index < arrayLength; index++) {
 //        std::cout << (dataPtrA[index]) << "\t\t" << (dataPtrB[index]) << std::endl;
 //    }
@@ -87,7 +87,7 @@ void Compute::calculate(uint arrayLength) {
 
     auto gridSize = MTL::Size(arrayLength, 1, 1);
 
-    uint maxThreadGroupSize = _pPSO->maxTotalThreadsPerThreadgroup();
+    unsigned long maxThreadGroupSize = _pPSO->maxTotalThreadsPerThreadgroup();
     if (maxThreadGroupSize > arrayLength) {
         maxThreadGroupSize = arrayLength;
     }
@@ -96,16 +96,30 @@ void Compute::calculate(uint arrayLength) {
     _pComputeCommandEncoder->dispatchThreadgroups(gridSize, threadGroupSize);
 
     _pComputeCommandEncoder->endEncoding();
+
+    auto start = std::chrono::system_clock::now();
     _pCommandBuffer->commit();
+
     _pCommandBuffer->waitUntilCompleted();
+    auto end = std::chrono::system_clock::now();
+    auto dur = (end - start).count();
+    std::cout << dur <<std::endl;
 
 
-//    for (u_long index = 0; index < arrayLength; index++) {
-//        std::cout << (dataPtrA[index]) << "\t\t" << (dataPtrB[index]) << "\t\t" << (dataPtrResult[index]) << std::endl;
-//    }
+
+    auto *dataPtrA = static_cast<float *>(_pBufferA->contents());
+    auto *dataPtrB = static_cast<float *>(_pBufferB->contents());
+    auto *dataPtrResult = static_cast<float *>(_pBufferResult->contents());
+    auto _start = std::chrono::system_clock::now();
+    for (u_long index = 0; index < arrayLength; index++) {
+        (dataPtrResult[index]) = (dataPtrA[index])+(dataPtrB[index]);
+    }
+    auto _end = std::chrono::system_clock::now();
+    auto _dur = (_end - _start).count();
+    std::cout << _dur <<std::endl;
 }
 
-void Compute::verifyResult(uint arrayLength) {
+void Compute::verifyResult(unsigned long arrayLength) {
     auto *a = static_cast<float *>(_pBufferA->contents());
     auto *b = static_cast<float *>(_pBufferB->contents());
     auto *result = static_cast<float *>(_pBufferResult->contents());
