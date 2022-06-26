@@ -3,6 +3,7 @@
 Compute::Compute(MTL::Device *pDevice)
     : _pDevice(pDevice->retain()) {
 
+    std::cout << "Computing with device " << pDevice->name()->cString(NS::UTF8StringEncoding) << std::endl;
 }
 
 Compute::~Compute() {
@@ -10,10 +11,10 @@ Compute::~Compute() {
 }
 
 void Compute::buildShaders() {
-    using NS::StringEncoding::UTF8StringEncoding;
+    using NS::UTF8StringEncoding;
 
     NS::Error *pError = nullptr;
-    auto *pPath = NS::String::string("./shader/MetalAdd.metal", UTF8StringEncoding);
+//    auto *pPath = NS::String::string("./shader/MetalAdd.metal", UTF8StringEncoding);
 //    auto *pUrl = NS::URL::alloc()->initFileURLWithPath(pPath);
 
     auto src = R"(
@@ -65,8 +66,16 @@ void Compute::calculate(uint arrayLength) {
     _pBufferB = _pDevice->newBuffer(bufferSize, MTL::ResourceStorageModeShared);
     _pBufferResult = _pDevice->newBuffer(bufferSize, MTL::ResourceStorageModeShared);
 
+
     generateRandomData(_pBufferA, arrayLength);
     generateRandomData(_pBufferB, arrayLength);
+
+//    auto *dataPtrA = static_cast<float *>(_pBufferA->contents());
+//    auto *dataPtrB = static_cast<float *>(_pBufferB->contents());
+//    auto *dataPtrResult = static_cast<float *>(_pBufferResult->contents());
+//    for (u_long index = 0; index < arrayLength; index++) {
+//        std::cout << (dataPtrA[index]) << "\t\t" << (dataPtrB[index]) << std::endl;
+//    }
 
     _pCommandBuffer = _pCommandQueue->commandBuffer();
     _pComputeCommandEncoder = _pCommandBuffer->computeCommandEncoder();
@@ -78,25 +87,28 @@ void Compute::calculate(uint arrayLength) {
 
     auto gridSize = MTL::Size(arrayLength, 1, 1);
 
-    uint threadGroupSize = _pPSO->maxTotalThreadsPerThreadgroup();
-    if (threadGroupSize > arrayLength) {
-        threadGroupSize = arrayLength;
+    uint maxThreadGroupSize = _pPSO->maxTotalThreadsPerThreadgroup();
+    if (maxThreadGroupSize > arrayLength) {
+        maxThreadGroupSize = arrayLength;
     }
-    auto threadgroupSize = MTL::Size(threadGroupSize, 1, 1);
+    auto threadGroupSize = MTL::Size(maxThreadGroupSize, 1, 1);
 
-    _pComputeCommandEncoder->dispatchThreadgroups(gridSize, threadgroupSize);
+    _pComputeCommandEncoder->dispatchThreadgroups(gridSize, threadGroupSize);
 
     _pComputeCommandEncoder->endEncoding();
     _pCommandBuffer->commit();
     _pCommandBuffer->waitUntilCompleted();
 
 
+//    for (u_long index = 0; index < arrayLength; index++) {
+//        std::cout << (dataPtrA[index]) << "\t\t" << (dataPtrB[index]) << "\t\t" << (dataPtrResult[index]) << std::endl;
+//    }
 }
 
 void Compute::verifyResult(uint arrayLength) {
-    auto a = static_cast<float *>(_pBufferA->contents());
-    auto b = static_cast<float *>(_pBufferA->contents());
-    auto result = static_cast<float *>(_pBufferA->contents());
+    auto *a = static_cast<float *>(_pBufferA->contents());
+    auto *b = static_cast<float *>(_pBufferB->contents());
+    auto *result = static_cast<float *>(_pBufferResult->contents());
 
     for (unsigned long index = 0; index < arrayLength; index++) {
         if (result[index] != (a[index] + b[index])) {
