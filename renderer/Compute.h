@@ -24,7 +24,7 @@ private:
     MTL::Buffer *_pBufferResult;
 
 public:
-    Compute(MTL::Device *pDevice);
+    explicit Compute(MTL::Device *pDevice);
     ~Compute();
 
     void buildShaders();

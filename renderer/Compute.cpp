@@ -7,7 +7,19 @@ Compute::Compute(MTL::Device *pDevice)
 }
 
 Compute::~Compute() {
+    _pBufferA->release();
+    _pBufferB->release();
+    _pBufferResult->release();
 
+    _pComputeCommandEncoder->release();
+    _pCommandBuffer->release();
+    _pCommandQueue->release();
+
+    _pFunc->release();
+    _pPSO->release();
+    _pLibrary->release();
+
+    _pDevice->release();
 }
 
 void Compute::buildShaders() {
@@ -48,6 +60,7 @@ kernel void add_arrays(device const float* inA,
 
     _pCommandQueue = _pDevice->newCommandQueue();
 
+    pError->release();
 }
 
 void Compute::generateRandomData(MTL::Buffer *buffer, unsigned long size) {
@@ -103,8 +116,7 @@ void Compute::calculate(unsigned long arrayLength) {
     _pCommandBuffer->waitUntilCompleted();
     auto end = std::chrono::system_clock::now();
     auto dur = (end - start).count();
-    std::cout << dur <<std::endl;
-
+    std::cout << dur << std::endl;
 
 
     auto *dataPtrA = static_cast<float *>(_pBufferA->contents());
@@ -112,11 +124,11 @@ void Compute::calculate(unsigned long arrayLength) {
     auto *dataPtrResult = static_cast<float *>(_pBufferResult->contents());
     auto _start = std::chrono::system_clock::now();
     for (u_long index = 0; index < arrayLength; index++) {
-        (dataPtrResult[index]) = (dataPtrA[index])+(dataPtrB[index]);
+        (dataPtrResult[index]) = (dataPtrA[index]) + (dataPtrB[index]);
     }
     auto _end = std::chrono::system_clock::now();
     auto _dur = (_end - _start).count();
-    std::cout << _dur <<std::endl;
+    std::cout << _dur << std::endl;
 }
 
 void Compute::verifyResult(unsigned long arrayLength) {
